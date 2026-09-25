@@ -1,4 +1,4 @@
-# 🏝️ Mac Dynamic Island & Face ID
+# Mac Dynamic Island & Face ID
 
 <div align="center">
 
@@ -10,7 +10,7 @@
 
 **A native, fluid Dynamic Island for macOS featuring an on-device Computer Vision & Machine Learning "Face ID" pipeline, optimized for Apple Silicon.**
 
-[Architecture & Implementation Plan](IMPLEMENTATION_PLAN.md) • [Features](#-features) • [Installation & Build](#-getting-started) • [ML Pipeline](#-ml--computer-vision-pipeline) • [Roadmap](#-roadmap)
+[Architecture Plan](IMPLEMENTATION_PLAN.md) • [CV & ML Documentation](COMPUTER_VISION_ML.md) • [Highlights](#highlights) • [Getting Started](#getting-started) • [ML Pipeline](#ml--computer-vision-pipeline) • [Roadmap](#roadmap)
 
 </div>
 
@@ -23,11 +23,11 @@
                        │        │ Camera Notch │        │
                        │  ┌─────┴──────────────┴─────┐  │
                        │  │   Mac Dynamic Island     │  │
-                       │  │  ◉ Face ID Authenticated │  │
+                       │  │   Face ID Authenticated  │  │
                        │  └──────────────────────────┘  │
 ```
 
-## ✨ Highlights
+## Highlights
 
 * **Native Notch Hugging**: Anchors seamlessly to the physical camera notch of MacBook Pro & Air (M1, M2, M3, M4) with automatic fallback for external monitors and non-notch Macs.
 * **Face ID for Mac**: Biometric face authentication using the built-in FaceTime HD camera, Apple Vision Framework, and CoreML running on the **Apple Neural Engine (ANE)**.
@@ -40,7 +40,7 @@
 
 ---
 
-## 🚀 Why Native Swift for Apple Silicon?
+## Why Native Swift for Apple Silicon?
 
 When building a high-performance Dynamic Island with Computer Vision for macOS, language selection is critical:
 
@@ -56,12 +56,13 @@ When building a high-performance Dynamic Island with Computer Vision for macOS, 
 
 ---
 
-## 🛠️ Project Structure
+## Project Structure
 
 ```
 MacDynamic-ComputerVision/
 ├── Package.swift                     # Swift Package Manager manifest (macOS 13+)
 ├── IMPLEMENTATION_PLAN.md            # In-depth architectural blueprint & roadmap
+├── COMPUTER_VISION_ML.md             # Complete Computer Vision & ML technical documentation
 ├── README.md                         # Project documentation & guide
 ├── Sources/
 │   └── MacDynamicIsland/
@@ -89,7 +90,7 @@ MacDynamic-ComputerVision/
 
 ---
 
-## 🏁 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -119,21 +120,21 @@ The Dynamic Island will immediately appear anchored around your MacBook notch (o
 
 ---
 
-## 🎮 Interactive Controls & Menu Bar
+## Interactive Controls & Menu Bar
 
-Mac Dynamic Island runs as a menu bar accessory. Look for the capsule icon `(•)` in your macOS menu bar:
+Mac Dynamic Island runs as a menu bar accessory. Look for the capsule icon in your macOS menu bar:
 
 * **Hover over the Notch**: The island smoothly expands to reveal quick triggers.
-* **Scan Face (Face ID)** (`⌘F`): Triggers the camera and displays the biometric authentication reticle.
-* **Simulate Media Playing** (`⌘M`): Expands the island with album info and an animated audio equalizer.
-* **Simulate MagSafe Charge** (`⌘B`): Triggers the green charging pulse and battery percentage.
-* **Collapse Island** (`⌘R`): Collapses the island back to its idle notch state.
+* **Scan Face (Face ID)** (`Command + F`): Triggers the camera and displays the biometric authentication reticle.
+* **Simulate Media Playing** (`Command + M`): Expands the island with album info and an animated audio equalizer.
+* **Simulate MagSafe Charge** (`Command + B`): Triggers the green charging pulse and battery percentage.
+* **Collapse Island** (`Command + R`): Collapses the island back to its idle notch state.
 
 ---
 
-## 🧠 ML & Computer Vision Pipeline
+## ML & Computer Vision Pipeline
 
-The `ml_pipeline/` directory contains tools for training, evaluating, and exporting face recognition models to Apple CoreML.
+The `ml_pipeline/` directory contains tools for training, evaluating, and exporting face recognition models to Apple CoreML. Detailed mathematical specifications and pipeline design are available in [COMPUTER_VISION_ML.md](COMPUTER_VISION_ML.md).
 
 ### 1. Install ML Dependencies
 ```bash
@@ -155,7 +156,7 @@ python3 benchmark.py
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] **v0.1**: Notch geometry detection & borderless floating window engine.
 - [x] **v0.2**: Dynamic Island spring animation physics & interactive hover.
@@ -171,7 +172,7 @@ python3 benchmark.py
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/CodeNebula-Dev/Mac-Dynamic-island/issues).
 
@@ -183,10 +184,10 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 <div align="center">
-  <sub>Built with ❤️ by <a href="https://github.com/CodeNebula-Dev">CodeNebula-Dev</a></sub>
+  <sub>Built by <a href="https://github.com/CodeNebula-Dev">CodeNebula-Dev</a></sub>
 </div>
