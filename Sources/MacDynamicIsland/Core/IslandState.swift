@@ -11,6 +11,7 @@ public enum FaceIDStatus: Equatable {
 public enum IslandMode: Equatable {
     case idle
     case hover
+    case welcome
     case faceID(FaceIDStatus)
     case media(title: String, artist: String, isPlaying: Bool)
     case battery(percentage: Int, isCharging: Bool)
@@ -38,6 +39,8 @@ public final class IslandState: ObservableObject {
             return metrics.notchWidth
         case .hover:
             return max(metrics.notchWidth + 90, 260)
+        case .welcome:
+            return 310
         case .faceID:
             return 320
         case .media:
@@ -56,6 +59,8 @@ public final class IslandState: ObservableObject {
             return metrics.notchHeight
         case .hover:
             return 52
+        case .welcome:
+            return 56
         case .faceID:
             return 64
         case .media:
@@ -111,6 +116,10 @@ public final class IslandState: ObservableObject {
     }
 
     // Convenience triggers
+    public func triggerWelcomePulse() {
+        setMode(.welcome, autoCollapseAfter: 4.0)
+    }
+
     public func triggerFaceIDDemo() {
         setMode(.faceID(.scanning))
         

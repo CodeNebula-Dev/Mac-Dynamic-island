@@ -46,6 +46,8 @@ public struct DynamicIslandView: View {
                     idleView
                 case .hover:
                     hoverQuickActionsView
+                case .welcome:
+                    welcomeView
                 case .faceID(let status):
                     FaceIDHUDView(status: status)
                 case .media(let title, let artist, let isPlaying):
@@ -65,6 +67,44 @@ public struct DynamicIslandView: View {
     }
 
     // MARK: - Subviews
+
+    private var welcomeView: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.green.opacity(0.2))
+                    .frame(width: 32, height: 32)
+                Circle()
+                    .fill(Color.green)
+                    .frame(width: 10, height: 10)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Dynamic Island Active")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                Text("Hover notch or click menu bar")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                Image(systemName: "faceid")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("READY")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+            }
+            .foregroundColor(.cyan)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Color.cyan.opacity(0.15))
+            .cornerRadius(6)
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 
     private var idleView: some View {
         HStack(spacing: 8) {

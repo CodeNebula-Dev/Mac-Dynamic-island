@@ -45,14 +45,22 @@ public final class FaceIDManager: NSObject, ObservableObject, AVCaptureVideoData
 
     /// Initiates a Face ID authentication cycle
     public func startAuthentication(completion: ((Bool, String?) -> Void)? = nil) {
-        sessionQueue.async { [weak self] in
-            guard let self = self else { return }
-            self.setupCameraIfNeeded()
-            if !self.captureSession.isRunning {
-                self.captureSession.startRunning()
+        AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+            guard let self = self, granted else {
                 DispatchQueue.main.async {
-                    self.isCameraActive = true
-                    self.authState = .detecting
+                    self?.authState = .unauthorized(reason: "Camera permission denied")
+                }
+                return
+            }
+
+            self.sessionQueue.async {
+                self.setupCameraIfNeeded()
+                if !self.captureSession.isRunning {
+                    self.captureSession.startRunning()
+                    DispatchQueue.main.async {
+                        self.isCameraActive = true
+                        self.authState = .detecting
+                    }
                 }
             }
         }

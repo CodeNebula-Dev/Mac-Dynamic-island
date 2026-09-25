@@ -24,8 +24,13 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
 
     private func setupNotchWindow() {
         let window = NotchWindow(state: islandState)
-        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
         self.notchWindow = window
+
+        // Trigger welcome greeting on launch
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            self?.islandState.triggerWelcomePulse()
+        }
     }
 
     private func setupStatusBar() {
