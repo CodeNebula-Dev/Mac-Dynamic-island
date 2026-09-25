@@ -5,7 +5,7 @@ public struct MediaHUDView: View {
     public let artist: String
     public let isPlaying: Bool
 
-    @State private var barHeights: [CGFloat] = [0.3, 0.7, 0.4, 0.9, 0.5]
+    @State private var barHeights: [CGFloat] = [0.35, 0.75, 0.45, 0.90, 0.55]
     private let timer = Timer.publish(every: 0.15, on: .main, in: .common).autoconnect()
 
     public init(title: String, artist: String, isPlaying: Bool) {
@@ -15,55 +15,55 @@ public struct MediaHUDView: View {
     }
 
     public var body: some View {
-        HStack(spacing: 12) {
-            // Album Art placeholder / icon
+        HStack(spacing: 14) {
+            // Album art / player icon
             ZStack {
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: 10)
                     .fill(
                         LinearGradient(
-                            gradient: Gradient(colors: [.purple, .indigo, .pink]),
+                            gradient: Gradient(colors: [.purple, .indigo]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 36, height: 36)
+                    .frame(width: 38, height: 38)
 
-                Image(systemName: "music.note")
+                Image(systemName: isPlaying ? "music.note" : "pause.fill")
                     .foregroundColor(.white)
                     .font(.system(size: 16, weight: .bold))
             }
 
-            // Song Info
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(1)
 
                 Text(artist)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.gray)
                     .lineLimit(1)
             }
 
             Spacer()
 
-            // Animated Audio Equalizer Bars
-            HStack(alignment: .bottom, spacing: 2.5) {
-                ForEach(0..<barHeights.count, id: \.self) { index in
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(Color.green)
-                        .frame(width: 3, height: isPlaying ? max(4, barHeights[index] * 18) : 4)
-                        .animation(.easeInOut(duration: 0.15), value: barHeights[index])
+            // Animated Equalizer Visualizer
+            if isPlaying {
+                HStack(alignment: .bottom, spacing: 3.5) {
+                    ForEach(0..<barHeights.count, id: \.self) { index in
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(Color.green)
+                            .frame(width: 4, height: max(5, barHeights[index] * 22))
+                            .animation(.easeInOut(duration: 0.15), value: barHeights[index])
+                    }
+                }
+                .frame(width: 32, height: 24)
+                .onReceive(timer) { _ in
+                    barHeights = barHeights.map { _ in CGFloat.random(in: 0.2...1.0) }
                 }
             }
-            .frame(width: 26, height: 18)
-            .onReceive(timer) { _ in
-                guard isPlaying else { return }
-                barHeights = barHeights.map { _ in CGFloat.random(in: 0.2...1.0) }
-            }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

@@ -10,7 +10,7 @@ public struct FaceIDHUDView: View {
 
     public var body: some View {
         HStack(spacing: 14) {
-            // Icon with glowing effect
+            // Icon
             ZStack {
                 switch status {
                 case .ready, .scanning:
@@ -20,7 +20,7 @@ public struct FaceIDHUDView: View {
                                 gradient: Gradient(colors: [.cyan, .blue, .purple, .cyan]),
                                 center: .center
                             ),
-                            lineWidth: 2.5
+                            lineWidth: 3.0
                         )
                         .frame(width: 34, height: 34)
                         .rotationEffect(.degrees(rotation))
@@ -36,73 +36,73 @@ public struct FaceIDHUDView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.cyan)
 
+                case .notEnrolled:
+                    Image(systemName: "faceid")
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundColor(.orange)
+
                 case .success:
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.system(size: 26, weight: .semibold))
                         .foregroundColor(.green)
                         .transition(.scale.combined(with: .opacity))
 
                 case .failed:
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 28, weight: .semibold))
+                        .font(.system(size: 26, weight: .semibold))
                         .foregroundColor(.red)
                         .transition(.scale.combined(with: .opacity))
                 }
             }
 
-            // Status label & subtitle
-            VStack(alignment: .leading, spacing: 2) {
+            // Status label
+            VStack(alignment: .leading, spacing: 3) {
                 switch status {
                 case .ready:
                     Text("Face ID")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
-                    Text("Looking for Face...")
-                        .font(.system(size: 11, weight: .medium))
+                    Text("Looking for enrolled face...")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.gray)
 
                 case .scanning:
-                    Text("Authenticating...")
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    Text("Scanning...")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
-                    Text("Apple Neural Engine Active")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.cyan.opacity(0.8))
+                    Text("Hold still")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.cyan.opacity(0.9))
+
+                case .notEnrolled:
+                    Text("Face ID Not Enrolled")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.orange)
+                    Text("Enrollment required in Settings")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.gray)
 
                 case .success(let name):
-                    Text("Face ID Verified")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                    Text("Verified")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(.green)
-                    Text("Welcome back, \(name)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.85))
+                    Text("Welcome, \(name)")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
 
                 case .failed(let reason):
                     Text("Face ID Failed")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(.red)
                     Text(reason)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.gray)
                 }
             }
 
             Spacer()
-
-            // Mac Apple Silicon Badge
-            HStack(spacing: 4) {
-                Image(systemName: "cpu")
-                    .font(.system(size: 10))
-                Text("ANE")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-            }
-            .foregroundColor(.white.opacity(0.6))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(Color.white.opacity(0.12))
-            .cornerRadius(6)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

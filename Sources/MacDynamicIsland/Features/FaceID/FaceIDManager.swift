@@ -20,6 +20,8 @@ public final class FaceIDManager: NSObject, ObservableObject, AVCaptureVideoData
     @Published public private(set) var isCameraActive: Bool = false
     @Published public private(set) var detectedFaceCount: Int = 0
     @Published public private(set) var livenessScore: Float = 0.0
+    @Published public private(set) var isEnrolled: Bool = false
+    @Published public private(set) var enrolledUserName: String? = nil
 
     private let captureSession = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "com.codenebula.macdynamicisland.camera", qos: .userInitiated)
@@ -178,9 +180,18 @@ public final class FaceIDManager: NSObject, ObservableObject, AVCaptureVideoData
 
         DispatchQueue.main.async {
             self.livenessScore = isLive ? 0.95 : 0.40
-            
+
+            // If user has not enrolled their face, report not enrolled rather than fake success
+            if !self.isEnrolled {
+                self.authState = .unauthorized(reason: "Face ID not enrolled")
+                DispatchQueue.global().asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                    self?.stopAuthentication()
+                }
+                return
+            }
+
             if isLive {
-                self.authState = .authorized(user: "Devansh")
+                self.authState = .authorized(user: self.enrolledUserName ?? "User")
                 // Auto shutoff camera after successful verification
                 DispatchQueue.global().asyncAfter(deadline: .now() + 1.0) { [weak self] in
                     self?.stopAuthentication()

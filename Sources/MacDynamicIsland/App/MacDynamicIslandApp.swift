@@ -7,14 +7,20 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
     private var notchWindow: NotchWindow?
     private var statusItem: NSStatusItem?
     private let islandState = IslandState.shared
-    private let faceIDManager = FaceIDManager.shared
+
+    private static var sharedDelegate: MacDynamicIslandApp?
 
     public static func main() {
         let app = NSApplication.shared
         let delegate = MacDynamicIslandApp()
+        sharedDelegate = delegate
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         app.run()
+    }
+
+    public func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
@@ -26,11 +32,6 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
         let window = NotchWindow(state: islandState)
         window.orderFrontRegardless()
         self.notchWindow = window
-
-        // Trigger welcome greeting on launch
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-            self?.islandState.triggerWelcomePulse()
-        }
     }
 
     private func setupStatusBar() {
@@ -45,52 +46,27 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
 
         let menu = NSMenu()
 
-        // Face ID Action
-        let faceIDItem = NSMenuItem(
-            title: "Scan Face (Face ID)",
-            action: #selector(triggerFaceID),
-            keyEquivalent: "f"
-        )
+        let faceIDItem = NSMenuItem(title: "Face ID", action: #selector(triggerFaceID), keyEquivalent: "f")
         faceIDItem.target = self
         menu.addItem(faceIDItem)
 
-        // Media Action
-        let mediaItem = NSMenuItem(
-            title: "Simulate Media Playing",
-            action: #selector(triggerMedia),
-            keyEquivalent: "m"
-        )
-        mediaItem.target = self
-        menu.addItem(mediaItem)
-
-        // Battery Action
-        let batteryItem = NSMenuItem(
-            title: "Simulate MagSafe Charge",
-            action: #selector(triggerBattery),
-            keyEquivalent: "b"
-        )
+        let batteryItem = NSMenuItem(title: "Battery Status", action: #selector(triggerBattery), keyEquivalent: "b")
         batteryItem.target = self
         menu.addItem(batteryItem)
 
+        let mediaItem = NSMenuItem(title: "Media Info", action: #selector(triggerMedia), keyEquivalent: "m")
+        mediaItem.target = self
+        menu.addItem(mediaItem)
+
         menu.addItem(NSMenuItem.separator())
 
-        // Reset
-        let resetItem = NSMenuItem(
-            title: "Collapse Island",
-            action: #selector(collapseIsland),
-            keyEquivalent: "r"
-        )
+        let resetItem = NSMenuItem(title: "Collapse", action: #selector(collapseIsland), keyEquivalent: "r")
         resetItem.target = self
         menu.addItem(resetItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        // Quit
-        let quitItem = NSMenuItem(
-            title: "Quit Mac Dynamic Island",
-            action: #selector(quitApp),
-            keyEquivalent: "q"
-        )
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
 
@@ -100,16 +76,15 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
     // MARK: - Actions
 
     @objc private func triggerFaceID() {
-        islandState.triggerFaceIDDemo()
-        faceIDManager.startAuthentication()
-    }
-
-    @objc private func triggerMedia() {
-        islandState.triggerMediaDemo()
+        islandState.triggerFaceID()
     }
 
     @objc private func triggerBattery() {
-        islandState.triggerBatteryPulse()
+        islandState.triggerBattery()
+    }
+
+    @objc private func triggerMedia() {
+        islandState.triggerMedia()
     }
 
     @objc private func collapseIsland() {
