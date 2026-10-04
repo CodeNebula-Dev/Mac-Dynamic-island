@@ -1,7 +1,7 @@
 # Master Research & Architecture Specification
 
 > **Project: Mac Dynamic Island + Custom Computer Vision Face ID**  
-> **Authors & Research Target: CodeNebula Dev & Antigravity**  
+> **Authors & Research Target: CodeNebula Dev**  
 > **Hardware Target: Apple Silicon MacBooks (M1, M2, M3, M4 series) & macOS 13+**
 
 ---
