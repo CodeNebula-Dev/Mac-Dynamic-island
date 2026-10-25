@@ -50,6 +50,10 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
         faceIDItem.target = self
         menu.addItem(faceIDItem)
 
+        let enrollItem = NSMenuItem(title: "Enroll Face ID...", action: #selector(triggerEnrollment), keyEquivalent: "e")
+        enrollItem.target = self
+        menu.addItem(enrollItem)
+
         let batteryItem = NSMenuItem(title: "Battery Status", action: #selector(triggerBattery), keyEquivalent: "b")
         batteryItem.target = self
         menu.addItem(batteryItem)
@@ -77,6 +81,10 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
 
     @objc private func triggerFaceID() {
         islandState.triggerFaceID()
+    }
+
+    @objc private func triggerEnrollment() {
+        islandState.triggerEnrollment()
     }
 
     @objc private func triggerBattery() {

@@ -53,6 +53,8 @@ public struct DynamicIslandView: View {
                                 hoverView
                             case .faceID(let status):
                                 FaceIDHUDView(status: status)
+                            case .enrollment:
+                                EnrollmentHUDView()
                             case .battery(let percentage, let isCharging, let isPluggedIn):
                                 BatteryHUDView(percentage: percentage, isCharging: isCharging, isPluggedIn: isPluggedIn)
                             case .media(let title, let artist, let isPlaying):

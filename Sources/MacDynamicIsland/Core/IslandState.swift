@@ -6,7 +6,7 @@ public enum FaceIDStatus: Equatable {
     case ready
     case scanning
     case notEnrolled
-    case success(userName: String)
+    case success(userName: String, similarity: Float = 0.95)
     case failed(reason: String)
 }
 
@@ -14,6 +14,7 @@ public enum IslandMode: Equatable {
     case idle
     case hover
     case faceID(FaceIDStatus)
+    case enrollment
     case media(title: String, artist: String, isPlaying: Bool)
     case battery(percentage: Int, isCharging: Bool, isPluggedIn: Bool)
 }
@@ -27,8 +28,61 @@ public final class IslandState: ObservableObject {
 
     private var autoCollapseTimer: AnyCancellable?
     private var hoverExitTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
 
-    public init() {}
+    public init() {
+        observeSubsystems()
+    }
+
+    // MARK: - Subsystem Observation
+
+    private func observeSubsystems() {
+        // Observe FaceIDManager authState updates
+        FaceIDManager.shared.$authState
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in
+                guard let self = self else { return }
+
+                switch state {
+                case .detecting, .verifying:
+                    if case .faceID = self.currentMode {
+                        self.setMode(.faceID(.scanning))
+                    }
+                case .authorized(let user, let sim):
+                    self.setMode(.faceID(.success(userName: user, similarity: sim)), autoCollapseAfter: 3.0)
+                case .unauthorized(let reason):
+                    if case .faceID = self.currentMode {
+                        if reason.contains("not enrolled") {
+                            self.setMode(.faceID(.notEnrolled), autoCollapseAfter: 6.0)
+                        } else {
+                            self.setMode(.faceID(.failed(reason: reason)), autoCollapseAfter: 3.5)
+                        }
+                    }
+                case .idle:
+                    break
+                }
+            }
+            .store(in: &cancellables)
+
+        // Observe EnrollmentManager state completion
+        EnrollmentManager.shared.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in
+                guard let self = self else { return }
+                switch state {
+                case .completed:
+                    self.autoCollapseTimer?.cancel()
+                    self.autoCollapseTimer = Just(())
+                        .delay(for: .seconds(3.0), scheduler: RunLoop.main)
+                        .sink { [weak self] _ in
+                            self?.collapseToIdle()
+                        }
+                default:
+                    break
+                }
+            }
+            .store(in: &cancellables)
+    }
 
     // MARK: - Dimensions
 
@@ -43,7 +97,9 @@ public final class IslandState: ObservableObject {
         case .hover:
             return max(metrics.notchWidth + 190, 390)
         case .faceID:
-            return max(metrics.notchWidth + 210, 420)
+            return max(metrics.notchWidth + 220, 430)
+        case .enrollment:
+            return max(metrics.notchWidth + 250, 460)
         case .media:
             return max(metrics.notchWidth + 210, 420)
         case .battery:
@@ -60,6 +116,8 @@ public final class IslandState: ObservableObject {
             contentHeight = 58
         case .faceID:
             contentHeight = 68
+        case .enrollment:
+            contentHeight = 74
         case .media:
             contentHeight = 62
         case .battery:
@@ -83,7 +141,6 @@ public final class IslandState: ObservableObject {
         let curW = currentWidth(for: metrics)
         let curH = currentHeight(for: metrics)
 
-        // Generous hover trigger zone when idle
         let padX: CGFloat = isExpanded ? 6 : 28
         let padY: CGFloat = isExpanded ? 6 : 18
 
@@ -151,7 +208,18 @@ public final class IslandState: ObservableObject {
     // MARK: - Actions
 
     public func triggerFaceID() {
-        setMode(.faceID(.notEnrolled), autoCollapseAfter: 5.0)
+        FaceIDManager.shared.reloadEnrollmentStatus()
+        if FaceIDManager.shared.isEnrolled {
+            setMode(.faceID(.scanning), autoCollapseAfter: 8.0)
+            FaceIDManager.shared.startAuthentication()
+        } else {
+            setMode(.faceID(.notEnrolled), autoCollapseAfter: 8.0)
+        }
+    }
+
+    public func triggerEnrollment(userName: String = "User") {
+        setMode(.enrollment)
+        EnrollmentManager.shared.startEnrollment(userName: userName)
     }
 
     public func triggerBattery() {
