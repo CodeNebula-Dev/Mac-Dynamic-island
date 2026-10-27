@@ -31,6 +31,24 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
     public func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusBar()
         setupNotchWindow()
+
+        // Immediate activation: expand island smoothly so user visibly sees it activate!
+        let args = CommandLine.arguments
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self = self else { return }
+            if args.contains("--enroll") || args.contains("-e") {
+                self.islandState.triggerEnrollment()
+            } else if args.contains("--faceid") || args.contains("-f") {
+                self.islandState.triggerFaceID()
+            } else if args.contains("--battery") || args.contains("-b") {
+                self.islandState.triggerBattery()
+            } else if args.contains("--media") || args.contains("-m") {
+                self.islandState.triggerMedia()
+            } else {
+                // Default startup: animate into expanded hover mode for 4s so it visibly pops out!
+                self.islandState.setMode(.hover, autoCollapseAfter: 4.0)
+            }
+        }
     }
 
     private func setupNotchWindow() {
