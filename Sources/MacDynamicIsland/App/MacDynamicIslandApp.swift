@@ -11,6 +11,11 @@ public final class MacDynamicIslandApp: NSObject, NSApplicationDelegate {
     private static var sharedDelegate: MacDynamicIslandApp?
 
     public static func main() {
+        if CommandLine.arguments.contains("--test") || CommandLine.arguments.contains("-t") {
+            let exitCode = SelfTestRunner.run()
+            exit(exitCode)
+        }
+
         let app = NSApplication.shared
         let delegate = MacDynamicIslandApp()
         sharedDelegate = delegate
