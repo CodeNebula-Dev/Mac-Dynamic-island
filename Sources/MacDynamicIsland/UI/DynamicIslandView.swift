@@ -3,9 +3,15 @@ import SwiftUI
 @MainActor
 public struct DynamicIslandView: View {
     @ObservedObject var state: IslandState
+    @State private var edgeGlowPhase: Double = 0.0
 
     public init(state: IslandState) {
         self.state = state
+    }
+
+    // Fine-tuned spring matching NotchNook/Bloom physics
+    private var morphSpring: Animation {
+        .spring(response: 0.28, dampingFraction: 0.78, blendDuration: 0.15)
     }
 
     public var body: some View {
@@ -15,7 +21,23 @@ public struct DynamicIslandView: View {
 
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
-                // Background Notch Shape matching hardware bezel curvature
+                // Layer 0: Ambient edge glow (visible on hover/expand — hitodama-inspired)
+                if state.isExpanded {
+                    RoundedRectangle(cornerRadius: state.bottomCornerRadius() + 2, style: .continuous)
+                        .fill(
+                            .linearGradient(
+                                colors: edgeGlowColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .blur(radius: 12)
+                        .opacity(0.35)
+                        .scaleEffect(1.03)
+                        .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: edgeGlowPhase)
+                }
+
+                // Layer 1: Background shape with glassmorphism
                 NotchShape(
                     topCornerRadius: state.topCornerRadius(),
                     bottomCornerRadius: state.bottomCornerRadius()
@@ -27,24 +49,28 @@ public struct DynamicIslandView: View {
                         bottomCornerRadius: state.bottomCornerRadius()
                     )
                     .stroke(
-                        Color.white.opacity(state.isExpanded ? 0.14 : 0.0),
-                        lineWidth: 0.5
+                        LinearGradient(
+                            colors: state.isExpanded
+                                ? [Color.white.opacity(0.22), Color.white.opacity(0.06)]
+                                : [Color.clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.75
                     )
                 )
                 .shadow(
-                    color: Color.black.opacity(state.isExpanded ? 0.65 : 0.0),
-                    radius: state.isExpanded ? 18 : 0,
+                    color: Color.black.opacity(state.isExpanded ? 0.55 : 0.0),
+                    radius: state.isExpanded ? 22 : 0,
                     x: 0,
-                    y: state.isExpanded ? 8 : 0
+                    y: state.isExpanded ? 10 : 0
                 )
 
-                // Visible content area placed strictly below the physical notch
+                // Layer 2: Content area below physical notch
                 if state.isExpanded {
                     VStack(spacing: 0) {
-                        // Top spacer matching physical notch depth
                         Color.clear.frame(height: metrics.notchHeight)
 
-                        // Expanded interactive view
                         Group {
                             switch state.currentMode {
                             case .idle:
@@ -67,70 +93,108 @@ public struct DynamicIslandView: View {
                     }
                     .transition(
                         .asymmetric(
-                            insertion: .opacity.combined(with: .move(edge: .top)),
+                            insertion: .opacity
+                                .combined(with: .scale(scale: 0.92, anchor: .top))
+                                .combined(with: .offset(y: -4)),
                             removal: .opacity
+                                .combined(with: .scale(scale: 0.96, anchor: .top))
                         )
                     )
                 }
             }
             .frame(width: islandWidth, height: islandHeight)
-            .animation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0), value: islandWidth)
-            .animation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0), value: islandHeight)
-            .animation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0), value: state.currentMode)
+            .animation(morphSpring, value: islandWidth)
+            .animation(morphSpring, value: islandHeight)
+            .animation(morphSpring, value: state.currentMode)
 
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .onAppear {
+            edgeGlowPhase = 1.0
+        }
     }
 
-    // MARK: - Hover Quick Actions
+    // MARK: - Edge Glow Colors (context-aware)
+
+    private var edgeGlowColors: [Color] {
+        switch state.currentMode {
+        case .faceID(.success):
+            return [Color.green.opacity(0.6), Color.mint.opacity(0.3)]
+        case .faceID(.failed):
+            return [Color.red.opacity(0.5), Color.orange.opacity(0.3)]
+        case .faceID(.notEnrolled):
+            return [Color.orange.opacity(0.4), Color.yellow.opacity(0.2)]
+        case .enrollment:
+            return [Color.cyan.opacity(0.5), Color.blue.opacity(0.3)]
+        case .battery:
+            return [Color.green.opacity(0.4), Color.teal.opacity(0.25)]
+        case .media:
+            return [Color.purple.opacity(0.5), Color.pink.opacity(0.3)]
+        default:
+            return [Color.cyan.opacity(0.3), Color.blue.opacity(0.2)]
+        }
+    }
+
+    // MARK: - Hover Quick Actions (Bloom-inspired pill buttons with glow)
 
     private var hoverView: some View {
-        HStack(spacing: 12) {
-            Button(action: { state.triggerFaceID() }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "faceid")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Face ID")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(.cyan)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.cyan.opacity(0.16))
-                .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
+        HStack(spacing: 10) {
+            hoverButton(
+                icon: "faceid",
+                label: "Face ID",
+                color: .cyan,
+                action: { state.triggerFaceID() }
+            )
 
-            Button(action: { state.triggerBattery() }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "battery.100")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Battery")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(.green)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.green.opacity(0.16))
-                .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
+            hoverButton(
+                icon: "battery.100",
+                label: "Battery",
+                color: .green,
+                action: { state.triggerBattery() }
+            )
 
-            Button(action: { state.triggerMedia() }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "music.note")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Media")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                }
-                .foregroundColor(.purple)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.purple.opacity(0.16))
-                .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
+            hoverButton(
+                icon: "music.note",
+                label: "Media",
+                color: .purple,
+                action: { state.triggerMedia() }
+            )
         }
+    }
+
+    private func hoverButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+            }
+            .foregroundColor(color)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(color.opacity(0.14))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .stroke(color.opacity(0.18), lineWidth: 0.5)
+                    )
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        }
+        .buttonStyle(IslandButtonStyle())
+    }
+}
+
+// MARK: - Premium Button Style with Scale Effect
+
+struct IslandButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .opacity(configuration.isPressed ? 0.8 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }

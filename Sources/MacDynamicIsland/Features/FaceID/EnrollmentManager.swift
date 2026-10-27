@@ -42,24 +42,30 @@ public final class EnrollmentManager: ObservableObject {
 
         public var guidanceInstruction: String {
             switch self {
-            case .frontal: return "Center your face in the guide"
-            case .left: return "Turn slightly to your left (~15°)"
-            case .right: return "Turn slightly to your right (~15°)"
-            case .up: return "Tilt your chin slightly up (~10°)"
-            case .down: return "Tilt your chin slightly down (~10°)"
+            case .frontal: return "Center your face in the frame"
+            case .left: return "Slowly turn your head to the left"
+            case .right: return "Slowly turn your head to the right"
+            case .up: return "Tilt your chin slightly upward"
+            case .down: return "Tilt your chin slightly downward"
             }
         }
 
+        /// Target yaw in degrees.
+        /// Apple Vision yaw convention: **positive = user turns right (from camera POV: face looks left)**
+        /// So when the user turns their head LEFT, Vision reports a POSITIVE yaw.
+        /// When the user turns their head RIGHT, Vision reports NEGATIVE yaw.
         public var targetYawDeg: Float {
             switch self {
             case .frontal: return 0.0
-            case .left: return -15.0
-            case .right: return 15.0
+            case .left: return 15.0   // User turns left → Vision sees positive yaw
+            case .right: return -15.0  // User turns right → Vision sees negative yaw
             case .up: return 0.0
             case .down: return 0.0
             }
         }
 
+        /// Target pitch in degrees.
+        /// Apple Vision pitch: positive = looking up, negative = looking down
         public var targetPitchDeg: Float {
             switch self {
             case .frontal: return 0.0
@@ -67,6 +73,23 @@ public final class EnrollmentManager: ObservableObject {
             case .right: return 0.0
             case .up: return 10.0
             case .down: return -10.0
+            }
+        }
+
+        /// Per-angle tolerance — frontal is tighter, side angles are wider
+        public var yawTolerance: Float {
+            switch self {
+            case .frontal: return 10.0
+            case .left, .right: return 12.0
+            case .up, .down: return 12.0
+            }
+        }
+
+        public var pitchTolerance: Float {
+            switch self {
+            case .frontal: return 10.0
+            case .left, .right: return 10.0
+            case .up, .down: return 10.0
             }
         }
     }
@@ -90,7 +113,7 @@ public final class EnrollmentManager: ObservableObject {
     private var enrolledUserName: String = "User"
     private var angleEmbeddings: [[Float]] = []
     private var holdCounter: Int = 0
-    private let requiredHoldFrames: Int = 12 // ~0.4s at 30fps steady pose
+    private let requiredHoldFrames: Int = 10 // ~0.33s at 30fps — snappier than before
     private let processingQueue = DispatchQueue(label: "com.codenebula.macdynamicisland.enrollment", qos: .userInitiated)
 
     public var isEnrolling: Bool {
@@ -150,19 +173,27 @@ public final class EnrollmentManager: ObservableObject {
         guard isEnrolling else { return }
 
         // Extract head pose yaw & pitch in degrees
-        // Vision yaw: radians (positive = right, negative = left)
-        // Vision pitch: radians (positive = up, negative = down)
-        let yawDeg = face.yaw.map { Float(truncating: $0) * 180.0 / .pi } ?? 0.0
-        let pitchDeg = face.pitch.map { Float(truncating: $0) * 180.0 / .pi } ?? 0.0
+        //
+        // CRITICAL: Apple Vision framework yaw convention:
+        //   face.yaw is in RADIANS
+        //   Positive yaw = head turned LEFT from user's perspective
+        //                 (which is right from the camera's POV)
+        //   Negative yaw = head turned RIGHT from user's perspective
+        //
+        // We convert to degrees and keep Vision's native sign convention.
+        let yawRad = face.yaw?.floatValue ?? 0.0
+        let pitchRad = face.pitch?.floatValue ?? 0.0
+        let yawDeg = yawRad * 180.0 / .pi
+        let pitchDeg = pitchRad * 180.0 / .pi
 
         let angles = EnrollmentAngle.allCases
         guard currentAngleIndex < angles.count else { return }
         let targetAngle = angles[currentAngleIndex]
 
-        // Check if head pose matches target angle within tolerance
+        // Check if head pose matches target angle within per-angle tolerance
         let yawDiff = abs(yawDeg - targetAngle.targetYawDeg)
         let pitchDiff = abs(pitchDeg - targetAngle.targetPitchDeg)
-        let matched = (yawDiff <= 8.5) && (pitchDiff <= 7.5)
+        let matched = (yawDiff <= targetAngle.yawTolerance) && (pitchDiff <= targetAngle.pitchTolerance)
 
         DispatchQueue.main.async {
             self.currentYaw = yawDeg
@@ -185,14 +216,12 @@ public final class EnrollmentManager: ObservableObject {
                 captureCurrentAngle(face: face, pixelBuffer: pixelBuffer, angle: targetAngle)
             }
         } else {
-            // Gradually decay hold progress if pose drops out
-            if holdCounter > 0 {
-                holdCounter -= 1
-                let progress = Float(holdCounter) / Float(requiredHoldFrames)
-                DispatchQueue.main.async {
-                    self.holdProgress = progress
-                    self.state = .capturing(angle: targetAngle, progress: progress)
-                }
+            // Fast decay when pose drops out (halve counter instead of -1 for snappier feedback)
+            holdCounter = max(0, holdCounter - 2)
+            let progress = Float(holdCounter) / Float(requiredHoldFrames)
+            DispatchQueue.main.async {
+                self.holdProgress = progress
+                self.state = .capturing(angle: targetAngle, progress: progress)
             }
         }
     }
@@ -211,14 +240,15 @@ public final class EnrollmentManager: ObservableObject {
         let embedding = FaceEmbeddingModel.shared.extractEmbedding(from: alignedBuffer)
         angleEmbeddings.append(embedding)
 
-        print("EnrollmentManager: Captured angle \(angle.shortTitle) (sample \(angleEmbeddings.count)/5)")
+        print("EnrollmentManager: ✓ Captured angle \(angle.shortTitle) — sample \(angleEmbeddings.count)/5 — yaw=\(String(format: "%.1f°", currentYaw)) pitch=\(String(format: "%.1f°", currentPitch))")
 
         let nextIndex = currentAngleIndex + 1
         if nextIndex < EnrollmentAngle.allCases.count {
-            // Move to next angle
-            DispatchQueue.main.async {
+            // Brief pause so user sees the green checkmark before transition
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                 self.currentAngleIndex = nextIndex
                 self.holdProgress = 0.0
+                self.holdCounter = 0
                 self.isAngleMatched = false
                 let nextAngle = EnrollmentAngle.allCases[nextIndex]
                 self.state = .capturing(angle: nextAngle, progress: 0.0)
@@ -249,7 +279,7 @@ public final class EnrollmentManager: ObservableObject {
         )
 
         if success {
-            print("EnrollmentManager: Successfully enrolled template with 5 angles for \(enrolledUserName)")
+            print("EnrollmentManager: ✓ Successfully enrolled biometric template with 5 angles for \(enrolledUserName)")
             DispatchQueue.main.async {
                 self.state = .completed(userName: self.enrolledUserName)
                 FaceIDManager.shared.reloadEnrollmentStatus()

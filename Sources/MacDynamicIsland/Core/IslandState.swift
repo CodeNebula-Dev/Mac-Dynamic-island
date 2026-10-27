@@ -25,6 +25,8 @@ public final class IslandState: ObservableObject {
 
     @Published public var currentMode: IslandMode = .idle
     @Published public var isHovered: Bool = false
+    /// Normalized cursor proximity to the island center (0.0 = far, 1.0 = touching)
+    @Published public var cursorProximity: CGFloat = 0.0
 
     private var autoCollapseTimer: AnyCancellable?
     private var hoverExitTask: Task<Void, Never>?
@@ -141,8 +143,9 @@ public final class IslandState: ObservableObject {
         let curW = currentWidth(for: metrics)
         let curH = currentHeight(for: metrics)
 
-        let padX: CGFloat = isExpanded ? 6 : 28
-        let padY: CGFloat = isExpanded ? 6 : 18
+        // Generous hover trigger zone when idle for instant responsiveness
+        let padX: CGFloat = isExpanded ? 8 : 40
+        let padY: CGFloat = isExpanded ? 8 : 28
 
         let width = curW + padX * 2
         let height = curH + padY
@@ -153,7 +156,24 @@ public final class IslandState: ObservableObject {
         return CGRect(x: x, y: y, width: width, height: height)
     }
 
+    /// Expanded proximity zone for cursor tracking (larger than interactive rect)
+    public func proximityRect(in bounds: CGRect, metrics: NotchMetrics) -> CGRect {
+        let idleW = metrics.idleShapeWidth + 80
+        let idleH = metrics.idleShapeHeight + 50
+
+        let x = (bounds.width - idleW) / 2.0
+        let y = bounds.height - idleH
+
+        return CGRect(x: x, y: y, width: idleW, height: idleH)
+    }
+
     // MARK: - Hover & Mode Transitions
+
+    /// Updates cursor proximity for subtle ambient effects
+    public func updateProximity(_ distance: CGFloat) {
+        let normalized = max(0, min(1, 1.0 - (distance / 60.0)))
+        cursorProximity = normalized
+    }
 
     public func setHovered(_ hovered: Bool) {
         hoverExitTask?.cancel()
@@ -161,18 +181,19 @@ public final class IslandState: ObservableObject {
         if hovered {
             isHovered = true
             if currentMode == .idle {
-                withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+                // Faster, snappier spring — inspired by NotchNook/Bloom
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.78, blendDuration: 0.12)) {
                     self.currentMode = .hover
                 }
             }
         } else {
-            // Debounce collapse to eliminate cursor flicker / gaps between controls
+            // Short debounce (120ms) to prevent flickering — much faster than before
             hoverExitTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 220_000_000) // 220ms
+                try? await Task.sleep(nanoseconds: 120_000_000)
                 guard !Task.isCancelled else { return }
                 self.isHovered = false
                 if self.currentMode == .hover {
-                    withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78, blendDuration: 0.12)) {
                         self.currentMode = .idle
                     }
                 }
@@ -182,7 +203,7 @@ public final class IslandState: ObservableObject {
 
     public func setMode(_ mode: IslandMode, autoCollapseAfter seconds: Double? = nil) {
         autoCollapseTimer?.cancel()
-        withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78, blendDuration: 0.12)) {
             self.currentMode = mode
         }
 
@@ -196,7 +217,7 @@ public final class IslandState: ObservableObject {
     }
 
     public func collapseToIdle() {
-        withAnimation(.interactiveSpring(response: 0.38, dampingFraction: 0.8, blendDuration: 0)) {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78, blendDuration: 0.12)) {
             if self.isHovered {
                 self.currentMode = .hover
             } else {
