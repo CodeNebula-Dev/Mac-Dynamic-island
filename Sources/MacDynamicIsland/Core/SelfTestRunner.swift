@@ -140,14 +140,14 @@ public struct SelfTestRunner {
         let angles = EnrollmentManager.EnrollmentAngle.allCases
         let anglesOk = (angles.count == 5) &&
             (EnrollmentManager.EnrollmentAngle.frontal.targetYawDeg == 0.0) &&
-            (EnrollmentManager.EnrollmentAngle.left.targetYawDeg == -15.0) &&
-            (EnrollmentManager.EnrollmentAngle.right.targetYawDeg == 15.0) &&
+            (EnrollmentManager.EnrollmentAngle.left.targetYawDeg == 15.0) &&
+            (EnrollmentManager.EnrollmentAngle.right.targetYawDeg == -15.0) &&
             (EnrollmentManager.EnrollmentAngle.up.targetPitchDeg == 10.0) &&
             (EnrollmentManager.EnrollmentAngle.down.targetPitchDeg == -10.0)
         report(
             name: "5-Angle Yaw & Pitch Targets",
             ok: anglesOk,
-            details: "Frontal (0°), Left (-15°), Right (+15°), Up (+10°), Down (-10°)"
+            details: "Frontal (0°), Left (+15° Vision yaw), Right (-15° Vision yaw), Up (+10°), Down (-10°)"
         )
 
         // Summary

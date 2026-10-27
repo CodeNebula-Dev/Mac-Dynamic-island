@@ -125,11 +125,11 @@ public struct EnrollmentHUDView: View {
                 HStack(spacing: 8) {
                     Text(String(format: "Yaw: %+.1f°", manager.currentYaw))
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundColor(abs(manager.currentYaw - angle.targetYawDeg) <= 8.5 ? .cyan : .gray)
+                        .foregroundColor(abs(manager.currentYaw - angle.targetYawDeg) <= angle.yawTolerance ? .green : .gray)
 
                     Text(String(format: "Pitch: %+.1f°", manager.currentPitch))
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundColor(abs(manager.currentPitch - angle.targetPitchDeg) <= 7.5 ? .cyan : .gray)
+                        .foregroundColor(abs(manager.currentPitch - angle.targetPitchDeg) <= angle.pitchTolerance ? .green : .gray)
                 }
 
             case .processingCentroid:

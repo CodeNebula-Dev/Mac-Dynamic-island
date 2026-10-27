@@ -21,8 +21,9 @@ public struct DynamicIslandView: View {
 
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
-                // Layer 0: Ambient edge glow (visible on hover/expand — hitodama-inspired)
-                if state.isExpanded {
+                // Layer 0: Ambient edge glow (visible on hover/expand or cursor proximity — hitodama-inspired)
+                let showGlow = state.isExpanded || state.cursorProximity > 0.05
+                if showGlow {
                     RoundedRectangle(cornerRadius: state.bottomCornerRadius() + 2, style: .continuous)
                         .fill(
                             .linearGradient(
@@ -32,8 +33,8 @@ public struct DynamicIslandView: View {
                             )
                         )
                         .blur(radius: 12)
-                        .opacity(0.35)
-                        .scaleEffect(1.03)
+                        .opacity(state.isExpanded ? 0.35 : Double(state.cursorProximity) * 0.22)
+                        .scaleEffect(state.isExpanded ? 1.03 : 1.0 + CGFloat(state.cursorProximity) * 0.015)
                         .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: edgeGlowPhase)
                 }
 

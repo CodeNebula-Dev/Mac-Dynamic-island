@@ -121,6 +121,21 @@ private final class IslandHostingView<Content: View>: NSHostingView<Content> {
         }
     }
 
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+        guard let state = islandState else { return }
+        let point = convert(event.locationInWindow, from: nil)
+        let metrics = NotchMetrics.current()
+        let activeRect = state.interactiveRect(in: bounds, metrics: metrics)
+
+        if activeRect.contains(point) {
+            state.updateProximity(0)
+            if !state.isHovered && state.currentMode == .idle {
+                state.setHovered(true)
+            }
+        }
+    }
+
     override func mouseMoved(with event: NSEvent) {
         super.mouseMoved(with: event)
         guard let state = islandState else { return }
@@ -129,10 +144,17 @@ private final class IslandHostingView<Content: View>: NSHostingView<Content> {
         let activeRect = state.interactiveRect(in: bounds, metrics: metrics)
 
         if activeRect.contains(point) {
+            state.updateProximity(0)
             if !state.isHovered && state.currentMode == .idle {
                 state.setHovered(true)
             }
         } else {
+            // Compute Euclidean distance from point to activeRect for hitodama-style proximity
+            let dx = max(activeRect.minX - point.x, 0, point.x - activeRect.maxX)
+            let dy = max(activeRect.minY - point.y, 0, point.y - activeRect.maxY)
+            let dist = sqrt(dx * dx + dy * dy)
+            state.updateProximity(dist)
+
             if state.isHovered && state.currentMode == .hover {
                 state.setHovered(false)
             }
@@ -141,6 +163,7 @@ private final class IslandHostingView<Content: View>: NSHostingView<Content> {
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
+        islandState?.updateProximity(1000)
         islandState?.setHovered(false)
     }
 }
